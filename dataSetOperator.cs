@@ -6,7 +6,7 @@ namespace array_finder;
 public class DataSetOperator
 {
     private string directoryPath;
-    public Dictionary<string, string> dataSetFiles;
+    public Dictionary<string, string> dataSetFiles = new Dictionary<string, string>();
     
     public DataSetOperator()
     {
@@ -22,19 +22,20 @@ public class DataSetOperator
     {
         if (!dataSetFiles.Any())
         {
-            foreach (string fileName in Directory.GetFiles(this.directoryPath, "*.json"))
+            foreach (string file in Directory.GetFiles(this.directoryPath, "dataset-*.csv"))
             {
-                dataSetFiles.Add(fileName, $"{this.directoryPath}/{fileName}");
+                dataSetFiles.Add(Path.GetFileName(file), $"{this.directoryPath}/{file}");
             }
         }
 
         return this.dataSetFiles;
     }
 
-    public void CreateDataSetFile(string fileName, List<int[]> arrayValues)
+    public string CreateDataSetFile(List<int[]> arrayValues)
     {
         string data = "";
-        using (FileStream fs = File.Create($"{this.directoryPath}/{fileName}-{DateTime.Today}.txt"))
+        string fileName = $"{this.directoryPath}/dataset-{DateTime.Now.ToString("dd-MM-yyyy_HH:mm:ss")}.csv";
+        using (FileStream fs = File.Create(fileName))
         {
             foreach (var items in arrayValues)
             {
@@ -50,18 +51,20 @@ public class DataSetOperator
             byte[] bytes = Encoding.UTF8.GetBytes(data);
             fs.Write(bytes, 0, bytes.Length);
         }
+
+        return fileName;
     }
 
     public List<int[]> ReadDataSetFromFile(string fileName)
     {
         var dataSet = new List<int[]>();
-        string fileContent = File.ReadAllText($"{this.directoryPath}/{fileName}.txt");
+        string fileContent = File.ReadAllText($"{this.directoryPath}/{fileName}");
         string[] lines = fileContent.Split(Environment.NewLine);
 
         foreach (var line in lines)
         {
             var lineValues = line.Split(',');
-            var numberArray = new int[lineValues.Length];
+            var numberArray = new int[lineValues.Length - 1];
             for (int i = 0; i < lineValues.Length - 1; i++)
             {
                 numberArray[i] = Convert.ToInt32(lineValues[i]);
