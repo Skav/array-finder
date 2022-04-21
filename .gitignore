@@ -1,3 +1,5 @@
 array-finder.csproj
 obj/
 bin/
+.env
+

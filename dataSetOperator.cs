@@ -1,5 +1,6 @@
 using System.IO;
 using System.Text;
+using Microsoft.VisualBasic.FileIO;
 
 namespace array_finder;
 
@@ -64,8 +65,10 @@ public class DataSetOperator
         foreach (var line in lines)
         {
             var lineValues = line.Split(',');
-            var numberArray = new int[lineValues.Length - 1];
-            for (int i = 0; i < lineValues.Length - 1; i++)
+            if (lineValues[0].Equals(""))
+                break;
+            var numberArray = new int[lineValues.Length];
+            for (int i = 0; i < lineValues.Length; i++)
             {
                 numberArray[i] = Convert.ToInt32(lineValues[i]);
             }
