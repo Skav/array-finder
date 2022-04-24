@@ -4,17 +4,17 @@ using Microsoft.VisualBasic.FileIO;
 
 namespace array_finder;
 
-public class DataSetOperator
+public class FileOperator
 {
     private string directoryPath;
     public Dictionary<string, string> dataSetFiles = new Dictionary<string, string>();
-    
-    public DataSetOperator()
+
+    public FileOperator()
     {
         this.directoryPath = Directory.GetCurrentDirectory();
     }
 
-    public DataSetOperator(string directoryPath)
+    public FileOperator(string directoryPath)
     {
         this.directoryPath = directoryPath;
     }
@@ -40,12 +40,27 @@ public class DataSetOperator
         {
             foreach (var items in arrayValues)
             {
-                foreach (var number in items)
-                {
-                    data += $"{number},";
-                }
-
+                data = string.Join(",", items);
                 data = data.Remove(data.Length - 1);
+                data += "\n";
+            }
+
+            byte[] bytes = Encoding.UTF8.GetBytes(data);
+            fs.Write(bytes, 0, bytes.Length);
+        }
+
+        return fileName;
+    }
+
+    public string CreateResultsFile(string name, string[] values)
+    {
+        string fileName = $"{this.directoryPath}/results-{name}-{DateTime.Now.ToString("dd-MM-yyyy_HH:mm:ss")}.csv";
+        using (FileStream fs = File.Create(fileName))
+        {
+            var data = "array_lenght,value,type,searchType,compare_type";
+            foreach (var item in values)
+            {
+                data += $"{item},";
                 data += "\n";
             }
 
@@ -67,11 +82,8 @@ public class DataSetOperator
             var lineValues = line.Split(',');
             if (lineValues[0].Equals(""))
                 break;
-            var numberArray = new int[lineValues.Length];
-            for (int i = 0; i < lineValues.Length; i++)
-            {
-                numberArray[i] = Convert.ToInt32(lineValues[i]);
-            }
+            
+            var numberArray = Array.ConvertAll(lineValues, int.Parse);
             dataSet.Add(numberArray);
         }
 

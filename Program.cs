@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Concurrent;
+using System.Collections.Specialized;
 using System.Security.Cryptography;
 
 namespace array_finder
@@ -51,7 +54,7 @@ namespace array_finder
                     case 1:
                         try
                         {
-                            createDataSet();
+                            CreateDataSet();
                         }
                         catch (ArgumentException e)
                         {
@@ -60,7 +63,7 @@ namespace array_finder
                             
                             string option = Console.ReadLine();
                             if(option.ToLower().Equals("y"))
-                                createDataSet();
+                                CreateDataSet();
                             else
                                 Console.WriteLine("Back to the menu...");
                         }
@@ -72,7 +75,7 @@ namespace array_finder
                     case 2:
                         try
                         {
-                            (dataSet, dataSetFile) = loadDataSet();
+                            (dataSet, dataSetFile) = LoadDataSet();
                             Console.WriteLine($"===  Load data set from file: {dataSetFile}  ===");
                         }
                         catch (Exception e)
@@ -81,10 +84,10 @@ namespace array_finder
                         }
                         break;
                     case 3:
-                        startCalculing(dataSet, dataSetFile, "linear");
+                        StartCalculating(dataSet, dataSetFile, "linear");
                         break;
                     case 4:
-                        startCalculing(dataSet, dataSetFile, "binary");
+                        StartCalculating(dataSet, dataSetFile, "binary");
                         break;
                     case 5:
                         isRunning = false;
@@ -97,9 +100,9 @@ namespace array_finder
             }
         }
 
-        static void createDataSet()
+        static void CreateDataSet()
         {
-            var fileOperator = new DataSetOperator();
+            var fileOperator = new FileOperator();
             int minArrayValue, maxArrayValue, arrayNumber;
             Console.Write("Enter minimum array lenght: ");
             while (!int.TryParse(Console.ReadLine(), out minArrayValue) || minArrayValue < 0 ||
@@ -123,13 +126,13 @@ namespace array_finder
             }
 
             Console.WriteLine("Data set save to: " +
-                              fileOperator.CreateDataSetFile(generateDataSetValues(minArrayValue, maxArrayValue,
+                              fileOperator.CreateDataSetFile(GenerateDataSetValues(minArrayValue, maxArrayValue,
                                   arrayNumber)));
         }
 
-        static (List<int[]>, string) loadDataSet()
+        static (List<int[]>, string) LoadDataSet()
         {
-            var fileOperator = new DataSetOperator();
+            var fileOperator = new FileOperator();
             var dataSetsFiles = fileOperator.GetAllDataSetFiles();
             var dataSetOptions = new string[dataSetsFiles.Count];
 
@@ -157,7 +160,7 @@ namespace array_finder
             return (dataSet, dataSetFile);
         }
 
-        static void startCalculing(List<int[]> dataSet, string dataSetFile, string searchType)
+        static void StartCalculating(List<int[]> dataSet, string dataSetFile, string searchType)
         {
             if (!dataSet.Any())
                 throw new ArgumentException("dataSet is empty, you need to load it first!");
@@ -165,14 +168,39 @@ namespace array_finder
             if (!searchType.Equals("linear") || searchType.Equals("binary"))
                 throw new ArgumentException("Wrong search type, choose between binary or linear");
 
-            Console.WriteLine($"Starting calculate execution time for linear search on data set from {dataSetFile}");
+            var jobs = new ConcurrentQueue<int[]>();
+            var results = new ConcurrentQueue<string>();
+            var threadsList = new List<Thread>();
 
-            /*
-             *Some fancy multit threaded functions and objects
-             */
+            foreach (var item in dataSet)
+            {
+                jobs.Enqueue(item);
+            }
+
+            for (int i = 0; i < 1; i++)
+            {
+                var threadObject = new CalculateThread(jobs, results, i, searchType);
+                var thread = new Thread(new ThreadStart(threadObject.Run));
+                thread.Start();
+                threadsList.Add(thread);
+            }
+
+            foreach (var thread in threadsList)
+            {
+                thread.Join();
+            }
+
+            if (jobs.Count == 0 || results.Count > 0)
+            {
+                var fileOperator = new FileOperator();
+                fileOperator.CreateResultsFile(searchType, results.ToArray());
+            }
+
+            Console.WriteLine("Task ended sucesfully");
+            
         }
 
-        static List<int[]> generateDataSetValues(int minArrayLenght, int maxArrayLenght, int numberOfArrays)
+        static List<int[]> GenerateDataSetValues(int minArrayLenght, int maxArrayLenght, int numberOfArrays)
         {
             if (numberOfArrays > maxArrayLenght - minArrayLenght || minArrayLenght > maxArrayLenght)
                 throw new ArgumentException("Parameters values are incorrect");
