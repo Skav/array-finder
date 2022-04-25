@@ -225,16 +225,11 @@ namespace array_finder
                 throw new ArgumentException("Parameters values are incorrect");
 
             var dataSets = new int[numberOfArrays];
-            var random = new Random();
+            int arrayLenghtJump = (maxArrayLenght - minArrayLenght) / numberOfArrays;
+            Console.WriteLine(arrayLenghtJump);
             for (int i = 0; i < numberOfArrays; i++)
             {
-                int lenght = 0;
-                do
-                {
-                    lenght = random.Next(minArrayLenght, maxArrayLenght);
-                } while (dataSets.Contains(lenght));
-
-                dataSets[i] = lenght;
+                dataSets[i] = minArrayLenght + i*arrayLenghtJump;
             }
 
             return dataSets;
