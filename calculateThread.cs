@@ -5,12 +5,12 @@ namespace array_finder;
 
 public class CalculateThread
 {
-    private ConcurrentQueue<int[]> jobs;
+    private ConcurrentQueue<int> jobs;
     private ConcurrentQueue<string> results;
     private int threadNo;
     private string searchType;
 
-    public CalculateThread(ConcurrentQueue<int[]> jobs, ConcurrentQueue<string> results, int threadNo, string searchType)
+    public CalculateThread(ConcurrentQueue<int> jobs, ConcurrentQueue<string> results, int threadNo, string searchType)
     {
         this.jobs = jobs;
         this.results = results;
@@ -28,20 +28,33 @@ public class CalculateThread
             Console.WriteLine("Invalid search type, work will not start");
     }
     
+    private int[] GenerateDataSetFromParameters(int dataSetParams)
+    {
+        var dataSet = new int[dataSetParams];
+
+        for (int i = 0; i < dataSetParams; i++)
+            dataSet[i] = i;
+
+        return dataSet;
+    }
+    
     private void StartLinearSearch()
     {
         Console.WriteLine($"==== Thread no. {threadNo} starting linear search ====");
         var _stopwatch = new Stopwatch();
-        Console.WriteLine($"==== Thread {threadNo}: Starting calculate nagative situation ====");
 
         LinearSearch(new[] {1, 2, 3}, 1); // Init function to avoid incorrect time values for 1st element in array
 
         while (jobs.Count > 0)
         {
-            Console.WriteLine($"==== Thread {threadNo}: Taking element from jobs, starting calculate pessimistic situation");
-            jobs.TryDequeue(out int[] dataSet);
-            if (dataSet == null)
+            Console.WriteLine($"==== Thread {threadNo}: Taking element from jobs ====");
+            jobs.TryDequeue(out int dataSetParams);
+            if (dataSetParams == null)
                 break;
+            
+            var dataSet = GenerateDataSetFromParameters(dataSetParams);
+
+            Console.WriteLine($"=== Threaad {threadNo}: Starting measure tick for pessimistic case ===");
             
             _stopwatch.Reset();
             _stopwatch.Start();
@@ -49,30 +62,73 @@ public class CalculateThread
             _stopwatch.Stop();
             var maxTime = _stopwatch.ElapsedTicks;
 
+            Console.WriteLine($"=== Thread {threadNo}: pessimistic case on {dataSet.Length} elements table takes {maxTime} ticks ===");
+
             results.Enqueue($"{dataSet.Length},{maxTime},pessimistic,linear,ticks");
             
             var (resultMax, maxIndex) = LinearSearchInstr(dataSet, -1);
             results.Enqueue($"{dataSet.Length},{maxIndex},pessimistic,linear,intr");
             
-            Console.WriteLine($"==== Thread {threadNo}: ended up calculing pesimistic situation, starting up avg situation for the same data set");
+            Console.WriteLine($"==== Thread {threadNo}: ended up measure pesimistic situation, starting up avg case ====");
 
             _stopwatch.Reset();
             _stopwatch.Start();
             LinearSearch(dataSet, 1);
             _stopwatch.Stop();
-            
             results.Enqueue($"{dataSet.Length},{(maxTime + _stopwatch.ElapsedTicks) / 2},avg,linear,ticks");
             
             var (resultMin, minIndex) = LinearSearchInstr(dataSet, 1);
             results.Enqueue($"{dataSet.Length},{(maxIndex+minIndex) / 2},avg,linear,intr");
-            
-            Console.WriteLine($"==== Thread {threadNo}: ended up calculing avg situation");
+
+            Console.WriteLine($"==== Thread {threadNo}: ended up measure linear search for {dataSet.Length} elements table ====");
         }
         
     }
 
     private void StartBinarySearch()
     {
+        Console.WriteLine($"==== Thread {threadNo}: starting bianry search ====");
+        var _stopwatch = new Stopwatch();
+
+        BinarySearch(new[] {1, 2, 3}, 1); // Init function to avoid incorrect time values for 1st element in array
+
+        while (jobs.Count > 0)
+        {
+            Console.WriteLine($"==== Thread {threadNo}: Taking element from jobs ====");
+            jobs.TryDequeue(out int dataSetParams);
+            if (dataSetParams == null)
+                break;
+
+            var dataSet = GenerateDataSetFromParameters(dataSetParams);
+            
+            Console.WriteLine($"=== Threaad {threadNo}: Starting measure tick for pessimistic case ===");
+            
+            _stopwatch.Reset();
+            _stopwatch.Start();
+            BinarySearch(dataSet, -1);
+            _stopwatch.Stop();
+            var maxTime = _stopwatch.ElapsedTicks;
+
+            Console.WriteLine($"=== Thread {threadNo}: pessimistic case on {dataSet.Length} elements table takes {maxTime} ticks ===");
+
+            results.Enqueue($"{dataSet.Length},{maxTime},pessimistic,binary,ticks");
+            
+            var (resultMax, maxIndex) = BinarySearchInstr(dataSet, -1);
+            results.Enqueue($"{dataSet.Length},{maxIndex},pessimistic,bianry,intr");
+            
+            Console.WriteLine($"==== Thread {threadNo}: ended up calculing pesimistic situation, starting up avg situation ====");
+
+            _stopwatch.Reset();
+            _stopwatch.Start();
+            BinarySearch(dataSet, 1);
+            _stopwatch.Stop();
+            results.Enqueue($"{dataSet.Length},{(maxTime + _stopwatch.ElapsedTicks) / 2},avg,binary,ticks");
+            
+            var (resultMin, minIndex) = BinarySearchInstr(dataSet, 1);
+            results.Enqueue($"{dataSet.Length},{(maxIndex+minIndex) / 2},avg,binary,intr");
+
+            Console.WriteLine($"==== Thread {threadNo}: ended up calculing linear search for {dataSet.Length} elements table ====");
+        }
     }
 
     private bool BinarySearch(int[] dataSet, int number)

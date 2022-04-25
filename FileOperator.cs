@@ -32,19 +32,18 @@ public class FileOperator
         return this.dataSetFiles;
     }
 
-    public string CreateDataSetFile(List<int[]> arrayValues)
+    public string CreateDataSetFile(int[] arrayValues)
     {
         string data = "";
         string fileName = $"{this.directoryPath}/dataset-{DateTime.Now.ToString("dd-MM-yyyy_HH:mm:ss")}.csv";
         using (FileStream fs = File.Create(fileName))
         {
-            foreach (var items in arrayValues)
+            foreach (var item in arrayValues)
             {
-                data = string.Join(",", items);
-                data = data.Remove(data.Length - 1);
-                data += "\n";
+                data += $"{item}{Environment.NewLine}";
             }
 
+            data = data.Substring(0, data.Length - 1);
             byte[] bytes = Encoding.UTF8.GetBytes(data);
             fs.Write(bytes, 0, bytes.Length);
         }
@@ -57,7 +56,7 @@ public class FileOperator
         string fileName = $"{this.directoryPath}/results-{name}-{DateTime.Now.ToString("dd-MM-yyyy_HH:mm:ss")}.csv";
         using (FileStream fs = File.Create(fileName))
         {
-            var data = "array_lenght,value,type,searchType,compare_type";
+            var data = "array_lenght,value,type,searchType,compare_type\n";
             foreach (var item in values)
             {
                 data += $"{item},";
@@ -71,22 +70,12 @@ public class FileOperator
         return fileName;
     }
 
-    public List<int[]> ReadDataSetFromFile(string fileName)
+    public List<int> ReadDataSetFromFile(string fileName)
     {
-        var dataSet = new List<int[]>();
         string fileContent = File.ReadAllText($"{this.directoryPath}/{fileName}");
-        string[] lines = fileContent.Split(Environment.NewLine);
-
-        foreach (var line in lines)
-        {
-            var lineValues = line.Split(',');
-            if (lineValues[0].Equals(""))
-                break;
-            
-            var numberArray = Array.ConvertAll(lineValues, int.Parse);
-            dataSet.Add(numberArray);
-        }
-
+        var strings = fileContent.Split(Environment.NewLine);
+        var dataSet = new List<int>(Array.ConvertAll(strings, int.Parse));
+        
         return dataSet;
     }
 }

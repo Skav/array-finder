@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Specialized;
+using System.Globalization;
 using System.Security.Cryptography;
 
 namespace array_finder
@@ -43,9 +44,11 @@ namespace array_finder
 
         static void Main(string[] args)
         {
-            bool isRunning = true;
-            var dataSet = new List<int[]>();
-            string dataSetFile = "";
+            var isRunning = true;
+            var dataSet = new List<int>();
+            var dataSetFile = "";
+
+            Console.WriteLine(int.MaxValue);
 
             while (isRunning)
             {
@@ -54,16 +57,16 @@ namespace array_finder
                     case 1:
                         try
                         {
-                            CreateDataSet();
+                            CreateDataSetParameters();
                         }
                         catch (ArgumentException e)
                         {
                             Console.WriteLine(e.Message);
                             Console.WriteLine("Task terminated, do you want to try again? (y/n)");
-                            
+
                             string option = Console.ReadLine();
-                            if(option.ToLower().Equals("y"))
-                                CreateDataSet();
+                            if (option.ToLower().Equals("y"))
+                                CreateDataSetParameters();
                             else
                                 Console.WriteLine("Back to the menu...");
                         }
@@ -71,6 +74,7 @@ namespace array_finder
                         {
                             Console.WriteLine(e.Message);
                         }
+
                         break;
                     case 2:
                         try
@@ -82,12 +86,28 @@ namespace array_finder
                         {
                             Console.WriteLine(e.Message);
                         }
+
                         break;
                     case 3:
-                        StartCalculating(dataSet, dataSetFile, "linear");
+                        try
+                        {
+                            StartCalculating(dataSet, dataSetFile, "linear");
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine(e.Message);
+                        }
                         break;
                     case 4:
-                        StartCalculating(dataSet, dataSetFile, "binary");
+                        try
+                        {
+                            StartCalculating(dataSet, dataSetFile, "binary");
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine(e.Message);
+                        }
+
                         break;
                     case 5:
                         isRunning = false;
@@ -100,37 +120,37 @@ namespace array_finder
             }
         }
 
-        static void CreateDataSet()
+        static void CreateDataSetParameters()
         {
             var fileOperator = new FileOperator();
             int minArrayValue, maxArrayValue, arrayNumber;
             Console.Write("Enter minimum array lenght: ");
             while (!int.TryParse(Console.ReadLine(), out minArrayValue) || minArrayValue < 0 ||
-                   minArrayValue >= Int32.MaxValue)
+                   minArrayValue > int.MaxValue)
             {
                 Console.WriteLine("Inccorect value, try again");
             }
 
             Console.Write("Enter maximum array lenght: ");
             while (!int.TryParse(Console.ReadLine(), out maxArrayValue) || maxArrayValue < 0 ||
-                   maxArrayValue >= Int32.MaxValue || maxArrayValue < minArrayValue)
+                   maxArrayValue > int.MaxValue || maxArrayValue < minArrayValue)
             {
                 Console.WriteLine("Inccorect value, try again");
             }
 
             Console.Write("Enter numbers of arrays: ");
             while (!int.TryParse(Console.ReadLine(), out arrayNumber) || arrayNumber <= 0 ||
-                   arrayNumber >= Int32.MaxValue)
+                   arrayNumber > int.MaxValue)
             {
                 Console.WriteLine("Inccorect value, try again");
             }
 
             Console.WriteLine("Data set save to: " +
-                              fileOperator.CreateDataSetFile(GenerateDataSetValues(minArrayValue, maxArrayValue,
+                              fileOperator.CreateDataSetFile(GenerateDataSetParameters(minArrayValue, maxArrayValue, 
                                   arrayNumber)));
         }
 
-        static (List<int[]>, string) LoadDataSet()
+        static (List<int>, string) LoadDataSet()
         {
             var fileOperator = new FileOperator();
             var dataSetsFiles = fileOperator.GetAllDataSetFiles();
@@ -154,21 +174,21 @@ namespace array_finder
             } while (!int.TryParse(Console.ReadLine(), out choosenOption) || choosenOption < 1 ||
                      choosenOption > dataSetOptions.Length);
 
-            var dataSet = fileOperator.ReadDataSetFromFile(dataSetOptions[choosenOption - 1]);
-            string dataSetFile = dataSetOptions[choosenOption - 1];
+            var dataSetParameters = fileOperator.ReadDataSetFromFile(dataSetOptions[choosenOption - 1]);
+            var dataSetFile = dataSetOptions[choosenOption - 1];
 
-            return (dataSet, dataSetFile);
+            return (dataSetParameters, dataSetFile);
         }
 
-        static void StartCalculating(List<int[]> dataSet, string dataSetFile, string searchType)
+        static void StartCalculating(List<int> dataSet, string dataSetFile, string searchType)
         {
             if (!dataSet.Any())
                 throw new ArgumentException("dataSet is empty, you need to load it first!");
 
-            if (!searchType.Equals("linear") || searchType.Equals("binary"))
+            if (!searchType.Equals("linear") && !searchType.Equals("binary"))
                 throw new ArgumentException("Wrong search type, choose between binary or linear");
 
-            var jobs = new ConcurrentQueue<int[]>();
+            var jobs = new ConcurrentQueue<int>();
             var results = new ConcurrentQueue<string>();
             var threadsList = new List<Thread>();
 
@@ -197,33 +217,24 @@ namespace array_finder
             }
 
             Console.WriteLine("Task ended sucesfully");
-            
         }
 
-        static List<int[]> GenerateDataSetValues(int minArrayLenght, int maxArrayLenght, int numberOfArrays)
+        static int[] GenerateDataSetParameters(int minArrayLenght, int maxArrayLenght, int numberOfArrays)
         {
             if (numberOfArrays > maxArrayLenght - minArrayLenght || minArrayLenght > maxArrayLenght)
                 throw new ArgumentException("Parameters values are incorrect");
 
-            var dataSets = new List<int[]>();
+            var dataSets = new int[numberOfArrays];
             var random = new Random();
-            var usedArrayLenghts = new int[numberOfArrays];
-            for (int i = numberOfArrays - 1; i >= 0; i--)
+            for (int i = 0; i < numberOfArrays; i++)
             {
                 int lenght = 0;
                 do
                 {
                     lenght = random.Next(minArrayLenght, maxArrayLenght);
-                } while (usedArrayLenghts.Contains(lenght));
+                } while (dataSets.Contains(lenght));
 
-                usedArrayLenghts[i] = lenght;
-                var data = new int[lenght];
-                for (int j = 0; j <= lenght - 1; j++)
-                {
-                    data[j] = j;
-                }
-
-                dataSets.Add(data);
+                dataSets[i] = lenght;
             }
 
             return dataSets;
